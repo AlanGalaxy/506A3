@@ -74,12 +74,11 @@ collect layout (colname#result result[N r2_p AIC]) (model), name(MyModels)
 collect style showbase off
 collect style row stack, spacer delimiter(" x ")
 collect style cell, nformat(%5.2f)
-collect style cell result[AIC BIC], nformat(%8.0f)
+collect style cell result[N AIC], nformat(%8.0f)
 collect style cell result[_r_se], sformat("(%s)")
-collect style header result[AIC BIC], level(label)
+collect style header result[AIC], level(label)
 
 collect style cell cell_type[item column-header], halign(center)
-collect style header result, level(hide)
 collect style column, extraspace(1)
 
 collect preview

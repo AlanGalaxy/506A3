@@ -33,7 +33,7 @@ end of do-file
 
 Merge the data sets using "seqn".
 
-```         
+``` stata
 . merge 1:1 seqn using "C:/Users/sunjiaqi/Downloads/DEMO_D.dta", keep(match)}
 
     Result                      Number of obs
@@ -48,7 +48,7 @@ end of do-file
 
 Get the number of rows, which is correct 6980.
 
-```         
+``` stata
 . count
   6,980
 
@@ -60,7 +60,7 @@ end of do-file
 
 Generate "age_bracket" column which indicates the age bracket one belongs to. Generate "distance_wear" column which indicates whether one wear glass/contact lenses.
 
-```         
+``` stata
 . generate age_tens_digit = floor(ridageyr / 10)
 
 . generate age_bracket = ""
@@ -276,7 +276,6 @@ end of do-file
 Remove missing data in "Poverty income ratio".
 
 ``` stata
-
 . keep if indfmpir >= 0 & indfmpir <= 5
 (298 observations deleted)
 
@@ -284,7 +283,7 @@ Remove missing data in "Poverty income ratio".
 end of do-file
 ```
 
-Collect the data from logistic regression model 1 and the "AIC".
+Collect the data from logistic regression model 3 and the "AIC".
 
 ``` stata
 . collect _r_b _r_se,                         ///
@@ -342,16 +341,14 @@ Modify the style.
 
 . collect style cell, nformat(%5.2f)
 
-. collect style cell result[AIC BIC], nformat(%8.0f)
+. collect style cell result[N AIC], nformat(%8.0f)
 
 . collect style cell result[_r_se], sformat("(%s)")
 
-. collect style header result[AIC BIC], level(label)
+. collect style header result[AIC], level(label)
 
 . 
 . collect style cell cell_type[item column-header], halign(center)
-
-. collect style header result, level(hide)
 
 . collect style column, extraspace(1)
 
@@ -364,36 +361,44 @@ Preview the table.
 ``` stata
 . collect preview
 
---------------------------------------------------------------------
-                                      |    (1)       (2)       (3)  
---------------------------------------+-----------------------------
-Age at Screening Adjudicated - Recode |    1.02      1.02      1.02 
-                                      |   (0.00)    (0.00)    (0.00)
-                                      |                             
-Race/Ethnicity - Recode=2             |              1.17      1.12 
-                                      |             (0.19)    (0.19)
-Race/Ethnicity - Recode=3             |              1.95      1.65 
-                                      |             (0.14)    (0.12)
-Race/Ethnicity - Recode=4             |              1.30      1.23 
-                                      |             (0.10)    (0.10)
-Race/Ethnicity - Recode=5             |              1.92      1.70 
-                                      |             (0.26)    (0.24)
-                                      |                             
-Gender=2                              |              1.65      1.68 
-                                      |             (0.09)    (0.09)
-                                      |                             
-Family PIR                            |                        1.12 
-                                      |                       (0.02)
-                                      |                             
-Intercept                             |    0.28      0.16      0.13 
-                                      |   (0.02)    (0.01)    (0.01)
-                                      |                             
-                                      |  6545.00   6545.00   6247.00
-                                      |                             
-                                      |    0.05      0.07      0.07 
-                                      |                             
-AIC                                   |    8476      8288      7910 
---------------------------------------------------------------------
+-----------------------------------------------------------------
+                                      |    (1)      (2)      (3) 
+--------------------------------------+--------------------------
+Age at Screening Adjudicated - Recode |                          
+  Coefficient                         |   1.02     1.02     1.02 
+  Std. error                          |  (0.00)   (0.00)   (0.00)
+                                      |                          
+Race/Ethnicity - Recode=2             |                          
+  Coefficient                         |            1.17     1.12 
+  Std. error                          |           (0.19)   (0.19)
+Race/Ethnicity - Recode=3             |                          
+  Coefficient                         |            1.95     1.65 
+  Std. error                          |           (0.14)   (0.12)
+Race/Ethnicity - Recode=4             |                          
+  Coefficient                         |            1.30     1.23 
+  Std. error                          |           (0.10)   (0.10)
+Race/Ethnicity - Recode=5             |                          
+  Coefficient                         |            1.92     1.70 
+  Std. error                          |           (0.26)   (0.24)
+                                      |                          
+Gender=2                              |                          
+  Coefficient                         |            1.65     1.68 
+  Std. error                          |           (0.09)   (0.09)
+                                      |                          
+Family PIR                            |                          
+  Coefficient                         |                     1.12 
+  Std. error                          |                    (0.02)
+                                      |                          
+Intercept                             |                          
+  Coefficient                         |   0.28     0.16     0.13 
+  Std. error                          |  (0.02)   (0.01)   (0.01)
+                                      |                          
+Number of observations                |   6545     6545     6247 
+                                      |                          
+Pseudo R-squared                      |   0.05     0.07     0.07 
+                                      |                          
+AIC                                   |   8476     8288     7910 
+-----------------------------------------------------------------
 
 . 
 end of do-file
@@ -428,7 +433,7 @@ end of do-file
 
 The PDF file looks like the image below, and is available in Github.
 
-![](屏幕截图 2023-10-08 123310.png)
+![](Table.png)
 
 \(d\)
 
