@@ -499,44 +499,199 @@ end of do-file
 
 \(a\)
 
-```{r}
+Load the data
 
+```{r}
+# install.packages("DBI")
+# install.packages("RSQLite")
+library(DBI)
+sakila <- dbConnect(RSQLite::SQLite(), "D:/Code/R/sakila_master.db")
+sakila
 ```
+
+Join "film" and "language" to get the data.
+
+```{r}
+query <- "
+  SELECT language.name AS 'language', COUNT(*) AS 'count'
+    FROM film
+         JOIN language ON film.language_id = language.language_id
+   WHERE language.name != 'English'
+   GROUP BY language.name
+   ORDER BY COUNT(*) DESC
+   LIMIT 1;
+"
+result <- dbGetQuery(sakila, query)
+result
+```
+
+There is no films with other language.
 
 \(b\)
 
 ```{r}
-
+# SQL & R
+query <- "
+  SELECT category.name AS 'genre'
+    FROM film
+         JOIN film_category ON film.film_id = film_category.film_id
+         JOIN category ON film_category.category_id = category.category_id;
+"
+result <- dbGetQuery(sakila, query)
+table <- table(result)
+table[which.max(table)]
 ```
+
+Sports is the most common genre with 74 films.
+
+```{r}
+# SQL Only
+query <- "
+  SELECT film_id_category_name.name AS 'genre', COUNT(*) AS 'count'
+    FROM (SELECT film_id, name
+            FROM category
+                 JOIN film_category ON category.category_id = 
+                                       film_category.category_id
+         ) AS film_id_category_name
+         JOIN film ON film_id_category_name.film_id = film.film_id
+   GROUP BY name
+   ORDER BY COUNT(*) DESC
+   LIMIT 1;
+"
+result <- dbGetQuery(sakila, query)
+result
+```
+
+We get the same result.
 
 \(c\)
 
 ```{r}
+# SQL & R
+query <- "
+  SELECT country.country AS 'country'
+    FROM customer
+         JOIN address ON customer.address_id = address.address_id
+         JOIN city ON address.city_id = city.city_id
+         JOIN country ON city.country_id = country.country_id;
+"
+result <- dbGetQuery(sakila, query)
+table <- table(result)
+table[table == 9]
+```
 
+United Kingdom has exactly 9 customers.
+
+```{r}
+# SQL Only
+query <- "
+  SELECT country.country AS 'country', COUNT(*) AS 'count'
+    FROM customer
+         JOIN address ON customer.address_id = address.address_id
+         JOIN city ON address.city_id = city.city_id
+         JOIN country ON city.country_id = country.country_id
+   GROUP BY country.country
+  HAVING COUNT(*) = 9;
+"
+result <- dbGetQuery(sakila, query)
+result
+```
+
+We get the same result.
+
+Disconnect the SQLite.
+
+```{r}
+dbDisconnect(sakila)
 ```
 
 ## Problem 3
 
 \(a\)
 
-```{r}
+Load the data.
 
+```{r}
+us <- read.csv("D:/Code/R/us-500.csv", header = TRUE)
+dim(us)
 ```
+
+Get the email column. The regular expression matches string with "\@" + any number of character +".net", and ".net" must be the end.
+
+```{r}
+email <- us$email
+
+net_TLD <- email[grep("@.*\\.net$", email)]
+length(net_TLD) / nrow(us)
+```
+
+The proportion of email with ".net" TLD is 0.14.
 
 \(b\)
 
-```{r}
+Replace all the characters behind "\@" (include) with empty "".
 
+```{r}
+local_email <- sub("@.*", "", email)
+
+non_alphanum_email <- email[grep("[^[:alnum:]]", local_email)]
+length(non_alphanum_email) / nrow(us)
 ```
+
+The proportion of email addresses have at least one non alphanumeric character is 0.506
 
 \(c\)
 
-```{r}
+Get the two phone number columns. Get the first three digits, which is the are code.
 
+```{r}
+phone <- c(us$phone1, us$phone2)
+area_code <- substr(phone,1, 3)
+t <- table(area_code)
+sort(t, decreasing = TRUE)[1]
 ```
+
+The most common area code is "973". There are 36 that area code.
 
 \(d\)
 
-```{r}
+Get the address column. Then get the address with number at the end. Extract the last few number, which is the apartment number. Draw the histogram of the log results.
 
+```{r}
+address <- us$address
+apartment_num_address <- address[grep("(\\d+)$", address)]
+library(stringr)
+apartment_num <- str_extract(apartment_num_address, "\\d+$")
+hist(log(as.numeric(apartment_num)), main = "Histogram of the log of the 
+     apartment numbers", xlab = "Log of apartment numbers")
 ```
+
+\(e\)
+
+Get the first digit of the apartment number. Draw the histogram and the simulated points of Benford's Law.
+
+```{r}
+leading_digit <- str_extract(apartment_num, "^\\d")
+hist(as.numeric(leading_digit), main = "Histogram of the first digit of the 
+     apartment numbers", xlab = "first digit of the apartment numbers", 
+     breaks = 0:9, freq = FALSE, ylim = c(0, 0.15))
+
+x <- runif(1000, min = 0, max = 9)
+Benford <- log10(1/x+1)
+points(y = Benford, x = x, col = "blue", lwd = 1)
+```
+
+The apartment number **does not** pass as real data. All the number from 1 to 9 seem equal likely be the first digit.
+
+\(f\)
+
+```{r}
+street_num <- str_extract(address, "^\\d+")
+last_digit <- str_extract(street_num, "\\d$")
+hist(as.numeric(last_digit), main = "Histogram of the last digit of the 
+     street numbers", xlab = "last digit of the street numbers", 
+     breaks = 0:9, freq = FALSE, ylim = c(0, 0.2))
+points(y = Benford, x = x, col = "blue", lwd = 1)
+```
+
+The street number **does not** pass as real data. All the number from 1 to 9 seem equal likely be the last digit.
