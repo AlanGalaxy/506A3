@@ -11,6 +11,8 @@ Github repository: [Github](https://github.com/AlanGalaxy/506A3)
 
 ## Problem 1
 
+It looks like stata code block cannot be folded. Some are quite long, sorry!
+
 \(a\)
 
 Reference: [STATA import sasxport](https://www.stata.com/manuals13/dimportsasxport.pdf). [STATA merge](https://www.stata.com/manuals/dmerge.pdf)
@@ -186,7 +188,6 @@ end of do-file
 Collect the data from logistic regression model 1 and the "AIC".
 
 ``` stata
-
 . collect _r_b _r_se,                  ///
 >         name(MyModels)                 ///
 >         tag(model[(1)])                ///
