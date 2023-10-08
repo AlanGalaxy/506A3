@@ -7,8 +7,536 @@ format:
 editor: visual
 ---
 
+Github repository: [Github](https://github.com/AlanGalaxy/506A3)
+
 ## Problem 1
+
+\(a\)
+
+Reference: [STATA import sasxport](https://www.stata.com/manuals13/dimportsasxport.pdf). [STATA merge](https://www.stata.com/manuals/dmerge.pdf)
+
+Import one data set and save it as ".dta" in order to let "merge" load the external data set.
+
+``` stata
+. import sasxport5 "C:/Users/sunjiaqi/Downloads/DEMO_D.XPT", clear
+
+. save "C:/Users/sunjiaqi/Downloads/DEMO_D.dta", replace
+file C:/Users/sunjiaqi/Downloads/DEMO_D.dta saved
+
+. import sasxport5 "C:/Users/sunjiaqi/Downloads/VIX_D.XPT", clear
+
+. 
+end of do-file
+```
+
+Merge the data sets using "seqn".
+
+```         
+. merge 1:1 seqn using "C:/Users/sunjiaqi/Downloads/DEMO_D.dta", keep(match)}
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                             6,980  (_merge==3)
+    -----------------------------------------
+
+. 
+end of do-file
+```
+
+Get the number of rows, which is correct 6980.
+
+```         
+. count
+  6,980
+
+. 
+end of do-file
+```
+
+\(b\)
+
+Generate "age_bracket" column which indicates the age bracket one belongs to. Generate "distance_wear" column which indicates whether one wear glass/contact lenses.
+
+```         
+. generate age_tens_digit = floor(ridageyr / 10)
+
+. generate age_bracket = ""
+(6,980 missing values generated)
+
+. replace age_bracket = "10-19" if age_tens_digit == 1
+variable age_bracket was str1 now str5
+(2,207 real changes made)
+
+. replace age_bracket = "20-29" if age_tens_digit == 2
+(1,021 real changes made)
+
+. replace age_bracket = "30-39" if age_tens_digit == 3
+(818 real changes made)
+
+. replace age_bracket = "40-49" if age_tens_digit == 4
+(815 real changes made)
+
+. replace age_bracket = "50-59" if age_tens_digit == 5
+(631 real changes made)
+
+. replace age_bracket = "60-69" if age_tens_digit == 6
+(661 real changes made)
+
+. replace age_bracket = "70-79" if age_tens_digit == 7
+(469 real changes made)
+
+. replace age_bracket = "80-89" if age_tens_digit == 8
+(358 real changes made)
+
+. generate distance_wear = ""
+(6,980 missing values generated)
+
+. replace distance_wear = "Yes" if viq220 == 1
+variable distance_wear was str1 now str3
+(2,765 real changes made)
+
+. replace distance_wear = "No" if viq220 == 2
+(3,780 real changes made)
+
+. replace distance_wear = "DoNotKnow" if viq220 == 9
+variable distance_wear was str3 now str9
+(2 real changes made)
+
+. 
+end of do-file
+```
+
+Build the table with proportion of respondents within each age bracket.
+
+``` stata
+. tabulate age_bracket distance_wear, row
+
++----------------+
+| Key            |
+|----------------|
+|   frequency    |
+| row percentage |
++----------------+
+
+age_bracke |          distance_wear
+         t | DoNotKnow         No        Yes |     Total
+-----------+---------------------------------+----------
+     10-19 |         0      1,418        670 |     2,088 
+           |      0.00      67.91      32.09 |    100.00 
+-----------+---------------------------------+----------
+     20-29 |         2        631        306 |       939 
+           |      0.21      67.20      32.59 |    100.00 
+-----------+---------------------------------+----------
+     30-39 |         0        481        269 |       750 
+           |      0.00      64.13      35.87 |    100.00 
+-----------+---------------------------------+----------
+     40-49 |         0        487        286 |       773 
+           |      0.00      63.00      37.00 |    100.00 
+-----------+---------------------------------+----------
+     50-59 |         0        274        335 |       609 
+           |      0.00      44.99      55.01 |    100.00 
+-----------+---------------------------------+----------
+     60-69 |         0        238        392 |       630 
+           |      0.00      37.78      62.22 |    100.00 
+-----------+---------------------------------+----------
+     70-79 |         0        148        299 |       447 
+           |      0.00      33.11      66.89 |    100.00 
+-----------+---------------------------------+----------
+     80-89 |         0        103        208 |       311 
+           |      0.00      33.12      66.88 |    100.00 
+-----------+---------------------------------+----------
+     Total |         2      3,780      2,765 |     6,547 
+           |      0.03      57.74      42.23 |    100.00 
+
+. 
+end of do-file
+```
+
+\(c\)
+
+Reference: [STATA Tables for multiple regression models](https://blog.stata.com/2021/09/02/customizable-tables-in-stata-17-part-6-tables-for-multiple-regression-models/), [STATA logistic](https://www.stata.com/manuals13/rlogistic.pdf), [STATA estat ic](https://www.stata.com/manuals13/restatic.pdf)
+
+Remove the missing data and observations "Do not know". Replace the value "2" with "0" to pass into logistic regression.
+
+``` stata
+
+. keep if viq220 == 1 | viq220 == 2
+(435 observations deleted)
+
+. replace viq220 = 0 if viq220 == 2
+(3,780 real changes made)
+
+. 
+end of do-file
+```
+
+Create a collection named "MyModels".
+
+``` stata
+. collect clear
+
+. collect create MyModels
+(current collection is MyModels)
+
+. 
+end of do-file
+```
+
+Collect the data from logistic regression model 1 and the "AIC".
+
+``` stata
+
+. collect _r_b _r_se,                  ///
+>         name(MyModels)                 ///
+>         tag(model[(1)])                ///
+>         : logistic viq220 c.ridageyr
+
+Logistic regression                                     Number of obs =  6,545
+                                                        LR chi2(1)    = 443.37
+                                                        Prob > chi2   = 0.0000
+Log likelihood = -4235.9433                             Pseudo R2     = 0.0497
+
+------------------------------------------------------------------------------
+      viq220 | Odds ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    ridageyr |    1.02498   .0012356    20.47   0.000     1.022561    1.027405
+       _cons |    .283379   .0151461   -23.59   0.000     .2551952    .3146755
+------------------------------------------------------------------------------
+Note: _cons estimates baseline odds.
+
+. 
+. collect AIC=r(S)[1,"AIC"],             ///
+>         name(MyModels)                 ///
+>         tag(model[(1)])                ///
+>         : estat ic
+
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |          N   ll(null)  ll(model)      df        AIC        BIC
+-------------+---------------------------------------------------------------
+           . |      6,545  -4457.627  -4235.943       2   8475.887    8489.46
+-----------------------------------------------------------------------------
+Note: BIC uses N = number of observations. See [R] IC note.
+
+. 
+end of do-file
+```
+
+Collect the data from logistic regression model 2 and the "AIC".
+
+``` stata
+. collect _r_b _r_se,                    ///
+>         name(MyModels)                 ///
+>         tag(model[(2)])                ///
+>         : logistic viq220 c.ridageyr i.ridreth1 i.riagendr
+
+Logistic regression                                     Number of obs =  6,545
+                                                        LR chi2(6)    = 641.49
+                                                        Prob > chi2   = 0.0000
+Log likelihood = -4136.8805                             Pseudo R2     = 0.0720
+
+------------------------------------------------------------------------------
+      viq220 | Odds ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    ridageyr |   1.022831   .0012912    17.88   0.000     1.020303    1.025365
+             |
+    ridreth1 |
+          2  |   1.169203    .192081     0.95   0.341     .8473273    1.613349
+          3  |   1.952149   .1366952     9.55   0.000     1.701803    2.239322
+          4  |    1.29936   .0995052     3.42   0.001     1.118264    1.509783
+          5  |   1.917442   .2596352     4.81   0.000     1.470495    2.500236
+             |
+  2.riagendr |    1.65217   .0875831     9.47   0.000     1.489127    1.833064
+       _cons |   .1593479   .0124169   -23.57   0.000     .1367784    .1856414
+------------------------------------------------------------------------------
+Note: _cons estimates baseline odds.
+
+. 
+. collect AIC=r(S)[1,"AIC"],             ///
+>         name(MyModels)                 ///
+>         tag(model[(2)])                ///
+>         : estat ic
+
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |          N   ll(null)  ll(model)      df        AIC        BIC
+-------------+---------------------------------------------------------------
+           . |      6,545  -4457.627   -4136.88       7   8287.761   8335.266
+-----------------------------------------------------------------------------
+Note: BIC uses N = number of observations. See [R] IC note.
+
+. 
+end of do-file
+```
+
+Remove missing data in "Poverty income ratio".
+
+``` stata
+
+. keep if indfmpir >= 0 & indfmpir <= 5
+(298 observations deleted)
+
+. 
+end of do-file
+```
+
+Collect the data from logistic regression model 1 and the "AIC".
+
+``` stata
+. collect _r_b _r_se,                         ///
+>         name(MyModels)                      ///
+>         tag(model[(3)])                     ///
+>         : logistic viq220 c.ridageyr i.ridreth1 i.riagendr c.indfmpir
+
+Logistic regression                                     Number of obs =  6,247
+                                                        LR chi2(7)    = 625.30
+                                                        Prob > chi2   = 0.0000
+Log likelihood = -3946.9041                             Pseudo R2     = 0.0734
+
+------------------------------------------------------------------------------
+      viq220 | Odds ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    ridageyr |   1.022436    .001324    17.14   0.000     1.019845    1.025035
+             |
+    ridreth1 |
+          2  |   1.123021   .1889653     0.69   0.490     .8075333    1.561764
+          3  |   1.651244   .1240886     6.67   0.000     1.425098    1.913277
+          4  |   1.230456   .0974736     2.62   0.009     1.053503     1.43713
+          5  |   1.703572   .2387583     3.80   0.000     1.294384    2.242114
+             |
+  2.riagendr |   1.675767   .0910025     9.51   0.000      1.50657    1.863967
+    indfmpir |   1.120301   .0198376     6.42   0.000     1.082087    1.159865
+       _cons |   .1331659   .0116903   -22.97   0.000     .1121161    .1581678
+------------------------------------------------------------------------------
+Note: _cons estimates baseline odds.
+
+. 
+. collect AIC=r(S)[1,"AIC"],                  ///
+>         name(MyModels)                      ///
+>         tag(model[(3)])                     ///
+>         : estat ic
+
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |          N   ll(null)  ll(model)      df        AIC        BIC
+-------------+---------------------------------------------------------------
+           . |      6,247  -4259.553  -3946.904       8   7909.808   7963.727
+-----------------------------------------------------------------------------
+Note: BIC uses N = number of observations. See [R] IC note.
+
+. 
+end of do-file
+```
+
+Modify the style.
+
+``` stata
+. collect style showbase off
+
+. collect style row stack, spacer delimiter(" x ")
+
+. collect style cell, nformat(%5.2f)
+
+. collect style cell result[AIC BIC], nformat(%8.0f)
+
+. collect style cell result[_r_se], sformat("(%s)")
+
+. collect style header result[AIC BIC], level(label)
+
+. 
+. collect style cell cell_type[item column-header], halign(center)
+
+. collect style header result, level(hide)
+
+. collect style column, extraspace(1)
+
+. 
+end of do-file
+```
+
+Preview the table.
+
+``` stata
+. collect preview
+
+--------------------------------------------------------------------
+                                      |    (1)       (2)       (3)  
+--------------------------------------+-----------------------------
+Age at Screening Adjudicated - Recode |    1.02      1.02      1.02 
+                                      |   (0.00)    (0.00)    (0.00)
+                                      |                             
+Race/Ethnicity - Recode=2             |              1.17      1.12 
+                                      |             (0.19)    (0.19)
+Race/Ethnicity - Recode=3             |              1.95      1.65 
+                                      |             (0.14)    (0.12)
+Race/Ethnicity - Recode=4             |              1.30      1.23 
+                                      |             (0.10)    (0.10)
+Race/Ethnicity - Recode=5             |              1.92      1.70 
+                                      |             (0.26)    (0.24)
+                                      |                             
+Gender=2                              |              1.65      1.68 
+                                      |             (0.09)    (0.09)
+                                      |                             
+Family PIR                            |                        1.12 
+                                      |                       (0.02)
+                                      |                             
+Intercept                             |    0.28      0.16      0.13 
+                                      |   (0.02)    (0.01)    (0.01)
+                                      |                             
+                                      |  6545.00   6545.00   6247.00
+                                      |                             
+                                      |    0.05      0.07      0.07 
+                                      |                             
+AIC                                   |    8476      8288      7910 
+--------------------------------------------------------------------
+
+. 
+end of do-file
+```
+
+Save the table to a PDF file.
+
+``` stata
+. putpdf clear
+
+. putpdf begin
+
+. putpdf paragraph, font("Calibri Light",26) halign(center)
+
+. putpdf text ("Respondent Who Wear Glass/Contact Lenses for Distance Vision")
+
+. 
+. collect style putpdf, width(60%) indent(1 in)          ///
+>         title("Table: Logistic Regression Models for Wearing of Glass/Contact Lenses for Di
+> stance Vision")                         ///
+>         note("Note: Odds ratio (standard error)")
+
+. putpdf collect
+(collection MyModels posted to putpdf)
+
+. putpdf save "C:/Users/sunjiaqi/Downloads/MyTable.pdf", replace
+successfully created "C:/Users/sunjiaqi/Downloads/MyTable.pdf"
+
+. 
+end of do-file
+```
+
+The PDF file looks like the image below, and is available in Github.
+
+![](屏幕截图 2023-10-08 123310.png)
+
+\(d\)
+
+The odds of female over male is 1.675767. The coefficient is 0.5162712, with t-statistic 9.51. The p-value is 0.000 \< 0.05. The difference is significant. The proportion of wearers of glasses/contact lenses for distance vision differs between men and women.
+
+``` stata
+. logistic viq220 c.ridageyr i.ridreth1 i.riagendr c.indfmpir
+
+Logistic regression                                     Number of obs =  6,247
+                                                        LR chi2(7)    = 625.30
+                                                        Prob > chi2   = 0.0000
+Log likelihood = -3946.9041                             Pseudo R2     = 0.0734
+
+------------------------------------------------------------------------------
+      viq220 | Odds ratio   Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    ridageyr |   1.022436    .001324    17.14   0.000     1.019845    1.025035
+             |
+    ridreth1 |
+          2  |   1.123021   .1889653     0.69   0.490     .8075333    1.561764
+          3  |   1.651244   .1240886     6.67   0.000     1.425098    1.913277
+          4  |   1.230456   .0974736     2.62   0.009     1.053503     1.43713
+          5  |   1.703572   .2387583     3.80   0.000     1.294384    2.242114
+             |
+  2.riagendr |   1.675767   .0910025     9.51   0.000      1.50657    1.863967
+    indfmpir |   1.120301   .0198376     6.42   0.000     1.082087    1.159865
+       _cons |   .1331659   .0116903   -22.97   0.000     .1121161    .1581678
+------------------------------------------------------------------------------
+Note: _cons estimates baseline odds.
+
+. 
+end of do-file
+```
+
+``` stata
+. logit viq220 c.ridageyr i.ridreth1 i.riagendr c.indfmpir
+
+Iteration 0:  Log likelihood = -4259.5533  
+Iteration 1:  Log likelihood = -3948.3256  
+Iteration 2:  Log likelihood = -3946.9043  
+Iteration 3:  Log likelihood = -3946.9041  
+
+Logistic regression                                     Number of obs =  6,247
+                                                        LR chi2(7)    = 625.30
+                                                        Prob > chi2   = 0.0000
+Log likelihood = -3946.9041                             Pseudo R2     = 0.0734
+
+------------------------------------------------------------------------------
+      viq220 | Coefficient  Std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+    ridageyr |   .0221883   .0012949    17.14   0.000     .0196504    .0247263
+             |
+    ridreth1 |
+          2  |   .1160225   .1682651     0.69   0.490     -.213771    .4458161
+          3  |   .5015289   .0751486     6.67   0.000     .3542404    .6488174
+          4  |   .2073846   .0792175     2.62   0.009     .0521211     .362648
+          5  |   .5327271   .1401516     3.80   0.000     .2580349    .8074192
+             |
+  2.riagendr |   .5162712    .054305     9.51   0.000     .4098355     .622707
+    indfmpir |   .1135978   .0177073     6.42   0.000      .078892    .1483035
+       _cons |   -2.01616   .0877879   -22.97   0.000    -2.188221   -1.844099
+------------------------------------------------------------------------------
+
+. 
+end of do-file
+```
 
 ## Problem 2
 
+\(a\)
+
+```{r}
+
+```
+
+\(b\)
+
+```{r}
+
+```
+
+\(c\)
+
+```{r}
+
+```
+
 ## Problem 3
+
+\(a\)
+
+```{r}
+
+```
+
+\(b\)
+
+```{r}
+
+```
+
+\(c\)
+
+```{r}
+
+```
+
+\(d\)
+
+```{r}
+
+```
