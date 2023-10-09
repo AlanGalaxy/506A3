@@ -650,10 +650,15 @@ The proportion of email with ".net" TLD is 0.14.
 
 \(b\)
 
-Replace all the characters behind "\@" (include) with empty. "\[\^\[:alnum:\]\]" will match any non alphanumeric character.
+Replace all the character "\@" (include) with empty. "\\\\.\[\^.\]\*\$" will match characters from the last "." to the end of the string. "\[\^\[:alnum:\]\]" will match any non alphanumeric character.
+
+This will find non alphanumeric alphanumeric characters in the customizable parts, except the "\@" and "." in TLD.
 
 ```{r}
-local_email <- sub("@.*", "", email)
+# Delete @
+email <- sub("@", "", email)
+# Delete the LTD part
+local_email <- sub("\\.[^.]*$", "", email)
 
 non_alphanum_email <- email[grep("[^[:alnum:]]", local_email)]
 length(non_alphanum_email) / nrow(us)
