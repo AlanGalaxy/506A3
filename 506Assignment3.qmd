@@ -17,7 +17,7 @@ It looks like stata code block cannot be folded. Some are quite long, sorry!
 
 Reference: [STATA import sasxport](https://www.stata.com/manuals13/dimportsasxport.pdf). [STATA merge](https://www.stata.com/manuals/dmerge.pdf)
 
-Import one data set and save it as ".dta" in order to let "merge" load the external data set.
+Import one data set and save it as ".dta" in order to let "merge" load the external .dta data set.
 
 ``` stata
 . import sasxport5 "C:/Users/sunjiaqi/Downloads/DEMO_D.XPT", clear
@@ -31,7 +31,7 @@ file C:/Users/sunjiaqi/Downloads/DEMO_D.dta saved
 end of do-file
 ```
 
-Merge the data sets using "seqn".
+Merge the data sets using "seqn" 1 to 1.
 
 ``` stata
 . merge 1:1 seqn using "C:/Users/sunjiaqi/Downloads/DEMO_D.dta", keep(match)}
@@ -46,7 +46,7 @@ Merge the data sets using "seqn".
 end of do-file
 ```
 
-Get the number of rows, which is correct 6980.
+Get the number of rows, which is correctly equal to 6980.
 
 ``` stata
 . count
@@ -109,7 +109,7 @@ variable distance_wear was str3 now str9
 end of do-file
 ```
 
-Build the table with proportion of respondents within each age bracket.
+Build the table with proportion of respondents within each age bracket. The first row in each bracket is the number of respondents, and the second row is the proportion.
 
 ``` stata
 . tabulate age_bracket distance_wear, row
@@ -173,7 +173,7 @@ Remove the missing data and observations "Do not know". Replace the value "2" wi
 end of do-file
 ```
 
-Create a collection named "MyModels".
+Clear and create a collection named "MyModels".
 
 ``` stata
 . collect clear
@@ -332,7 +332,7 @@ Note: BIC uses N = number of observations. See [R] IC note.
 end of do-file
 ```
 
-Modify the style.
+Modify the styles.
 
 ``` stata
 . collect style showbase off
@@ -437,7 +437,7 @@ The PDF file looks like the image below, and is available in Github.
 
 \(d\)
 
-The odds of female over male is 1.675767. The coefficient is 0.5162712, with t-statistic 9.51. The p-value is 0.000 \< 0.05. The difference is significant. The proportion of wearers of glasses/contact lenses for distance vision differs between men and women.
+The odds of female over male is 1.675767. The coefficient is 0.5162712, with z-statistic 9.51. The p-value is 0.000 \< 0.05. The difference is significant. The proportion of wearers of glasses/contact lenses for distance vision differs between men and women.
 
 ``` stata
 . logistic viq220 c.ridageyr i.ridreth1 i.riagendr c.indfmpir
@@ -467,6 +467,8 @@ Note: _cons estimates baseline odds.
 . 
 end of do-file
 ```
+
+From logit we can directly get the coefficients.
 
 ``` stata
 . logit viq220 c.ridageyr i.ridreth1 i.riagendr c.indfmpir
@@ -505,12 +507,13 @@ end of do-file
 
 \(a\)
 
-Load the data
+Load the data.
 
 ```{r}
 # install.packages("DBI")
 # install.packages("RSQLite")
 library(DBI)
+# Build connection
 sakila <- dbConnect(RSQLite::SQLite(), "D:/Code/R/sakila_master.db")
 sakila
 ```
@@ -535,20 +538,25 @@ There is no films with other language.
 
 \(b\)
 
+Select proper table from the SQL, and then do the rest in R.
+
 ```{r}
 # SQL & R
-query <- "
-  SELECT category.name AS 'genre'
-    FROM film
-         JOIN film_category ON film.film_id = film_category.film_id
-         JOIN category ON film_category.category_id = category.category_id;
-"
-result <- dbGetQuery(sakila, query)
-table <- table(result)
+# Get the tables
+film <- dbGetQuery(sakila, "SELECT * FROM film")
+film_category <- dbGetQuery(sakila, "SELECT * FROM film_category")
+category <- dbGetQuery(sakila, "SELECT * FROM category")
+# Merge them
+T1 <- merge(film, film_category, by = "film_id")
+T2 <- merge(T1, category, by = "category_id")
+
+table <- table(T2$name)
 table[which.max(table)]
 ```
 
 Sports is the most common genre with 74 films.
+
+Get the result use single SQL query.
 
 ```{r}
 # SQL Only
@@ -572,21 +580,28 @@ We get the same result.
 
 \(c\)
 
+Select proper table from the SQL, and then do the rest in R.
+
 ```{r}
 # SQL & R
-query <- "
-  SELECT country.country AS 'country'
-    FROM customer
-         JOIN address ON customer.address_id = address.address_id
-         JOIN city ON address.city_id = city.city_id
-         JOIN country ON city.country_id = country.country_id;
-"
-result <- dbGetQuery(sakila, query)
-table <- table(result)
+# Get the tables
+customer <- dbGetQuery(sakila, "SELECT * FROM customer")
+address <- dbGetQuery(sakila, "SELECT * FROM address")
+city <- dbGetQuery(sakila, "SELECT * FROM city")
+country <- dbGetQuery(sakila, "SELECT * FROM country")
+# Merge them
+T1 <- merge(customer, address, by = "address_id", suffixes = c("cust", "add"), 
+            no.dups = FALSE)
+T2 <- merge(T1, city, by = "city_id", no.dups = FALSE)
+T3 <- merge(T2, country, by = "country_id", no.dups = FALSE)
+
+table <- table(T3$country)
 table[table == 9]
 ```
 
 United Kingdom has exactly 9 customers.
+
+Get the result use single SQL query.
 
 ```{r}
 # SQL Only
@@ -635,7 +650,7 @@ The proportion of email with ".net" TLD is 0.14.
 
 \(b\)
 
-Replace all the characters behind "\@" (include) with empty "".
+Replace all the characters behind "\@" (include) with empty. "\[\^\[:alnum:\]\]" will match any non alphanumeric character.
 
 ```{r}
 local_email <- sub("@.*", "", email)
@@ -657,17 +672,19 @@ t <- table(area_code)
 sort(t, decreasing = TRUE)[1]
 ```
 
-The most common area code is "973". There are 36 that area code.
+The most common area code is "973". There are 36 phone number in that area code.
 
 \(d\)
 
 Get the address column. Then get the address with number at the end. Extract the last few number, which is the apartment number. Draw the histogram of the log results.
 
+"(//d+)\$" will find at least one digit at the end.
+
 ```{r}
 address <- us$address
 apartment_num_address <- address[grep("(\\d+)$", address)]
 library(stringr)
-apartment_num <- str_extract(apartment_num_address, "\\d+$")
+apartment_num <- str_extract(apartment_num_address, "(\\d+)$")
 hist(log(as.numeric(apartment_num)), main = "Histogram of the log of the 
      apartment numbers", xlab = "Log of apartment numbers")
 ```
@@ -676,12 +693,14 @@ hist(log(as.numeric(apartment_num)), main = "Histogram of the log of the
 
 Get the first digit of the apartment number. Draw the histogram and the simulated points of Benford's Law.
 
+"\^(\\\\d)" will find the first digit.
+
 ```{r}
-leading_digit <- str_extract(apartment_num, "^\\d")
+leading_digit <- str_extract(apartment_num, "^(\\d)")
 hist(as.numeric(leading_digit), main = "Histogram of the first digit of the 
      apartment numbers", xlab = "first digit of the apartment numbers", 
      breaks = 0:9, freq = FALSE, ylim = c(0, 0.15))
-
+# Generate distribution follows Benford's Law
 x <- runif(1000, min = 0, max = 9)
 Benford <- log10(1/x+1)
 points(y = Benford, x = x, col = "blue", lwd = 1)
@@ -691,9 +710,11 @@ The apartment number **does not** pass as real data. All the number from 1 to 9 
 
 \(f\)
 
+"\^(\\\\d+)" will find the digit(s) at the beginning. "(\\\\d)\$" will find the last digit.
+
 ```{r}
-street_num <- str_extract(address, "^\\d+")
-last_digit <- str_extract(street_num, "\\d$")
+street_num <- str_extract(address, "^(\\d+)")
+last_digit <- str_extract(street_num, "(\\d)$")
 hist(as.numeric(last_digit), main = "Histogram of the last digit of the 
      street numbers", xlab = "last digit of the street numbers", 
      breaks = 0:9, freq = FALSE, ylim = c(0, 0.2))
